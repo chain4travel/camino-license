@@ -1,4 +1,4 @@
-possible-headers: 
+default-headers: 
   - name: avax
     header: |
       // Copyright (C) 2019-{YEAR}, Ava Labs, Inc. All rights reserved.

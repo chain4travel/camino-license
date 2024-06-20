@@ -7,7 +7,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type PossibleHeader struct {
+type DefaultHeader struct {
 	Name   string `yaml:"name"`
 	Header string `yaml:"header"`
 }
@@ -19,8 +19,8 @@ type CustomHeader struct {
 }
 
 type HeadersConfig struct {
-	PossibleHeaders []PossibleHeader `yaml:"possible-headers"`
-	CustomHeaders   []CustomHeader   `yaml:"custom-headers"`
+	DefaultHeaders []DefaultHeader `yaml:"default-headers"`
+	CustomHeaders  []CustomHeader  `yaml:"custom-headers"`
 }
 
 func GetHeadersConfig(configPath string) (HeadersConfig, error) {

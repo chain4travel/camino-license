@@ -1,7 +1,9 @@
 package caminolicense
 
 import (
+	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -15,23 +17,37 @@ type WrongLicenseHeader struct {
 }
 
 func CheckLicense(files []string, headersConfig HeadersConfig) ([]WrongLicenseHeader, error) {
-
 	var wrongFiles []WrongLicenseHeader
 	for _, f := range files {
-		if _, err := os.Stat(f); errors.Is(err, os.ErrNotExist) {
+		info, err := os.Stat(f)
+
+		if err != nil {
 			wrongFiles = append(wrongFiles, WrongLicenseHeader{f, "File doesn't exist"})
+			continue
+		}
+
+		if info.IsDir() {
+			pathFiles, filePathErr := filepathx.Glob(f + "/**/*.go")
+			if filePathErr != nil {
+				wrongFiles = append(wrongFiles, WrongLicenseHeader{f, "Cannot find .go files under this directory"})
+				continue
+			}
+			for _, path := range pathFiles {
+				match, matchErr := filepath.Match("mock_*.go", filepath.Base(path))
+				if strings.HasSuffix(path, ".pb.go") || matchErr != nil || match {
+					continue
+				}
+				wrongFile, checkErr := checkFileLicense(f, headersConfig)
+				wrongFiles = append(wrongFiles, wrongFile)
+				if checkErr != nil {
+					return wrongFiles, checkErr
+				}
+			}
 		} else {
-			isCustomHeader, headerName, header := checkCustomHeader(f, headersConfig)
-			if isCustomHeader {
-				correctLicense, reason := verifyCustomLicenseHeader(f, headerName, header)
-				if !correctLicense {
-					wrongFiles = append(wrongFiles, WrongLicenseHeader{f, reason})
-				}
-			} else {
-				correctLicense, reason := verifyDefaultLicenseHeader(f, headersConfig.PossibleHeaders)
-				if !correctLicense {
-					wrongFiles = append(wrongFiles, WrongLicenseHeader{f, reason})
-				}
+			wrongFile, checkErr := checkFileLicense(f, headersConfig)
+			wrongFiles = append(wrongFiles, wrongFile)
+			if checkErr != nil {
+				return wrongFiles, checkErr
 			}
 		}
 	}
@@ -44,38 +60,7 @@ func CheckLicense(files []string, headersConfig HeadersConfig) ([]WrongLicenseHe
 
 }
 
-func UpdateLicense(files []string, headersConfig HeadersConfig) error {
-
-	var wrongFiles []WrongLicenseHeader
-	for _, f := range files {
-		if _, err := os.Stat(f); errors.Is(err, os.ErrNotExist) {
-			wrongFiles = append(wrongFiles, WrongLicenseHeader{f, "File doesn't exist"})
-		} else {
-			isCustomHeader, headerName, header := checkCustomHeader(f, headersConfig)
-			if isCustomHeader {
-				correctLicense, reason := verifyUpdateCustomLicenseHeader(f, headerName, header)
-				if !correctLicense {
-					wrongFiles = append(wrongFiles, WrongLicenseHeader{f, reason})
-				}
-			} else {
-				correctLicense, reason := verifyUpdateDefaultLicenseHeader(f, headersConfig.PossibleHeaders)
-				if !correctLicense {
-					wrongFiles = append(wrongFiles, WrongLicenseHeader{f, reason})
-				}
-			}
-		}
-	}
-
-	if len(wrongFiles) > 0 {
-		return errors.New("Some files has wrong License Header. Please run check command first, solve the issues then run the update command again")
-	}
-
-	return nil
-
-}
-
-func checkCustomHeader(file string, headersConfig HeadersConfig) (bool, string, string) {
-
+func checkCustomHeader(file string, headersConfig HeadersConfig) (bool, string, string, error) {
 	// check Custome Headers
 	headerName := ""
 	longestPath := ""
@@ -85,7 +70,7 @@ func checkCustomHeader(file string, headersConfig HeadersConfig) (bool, string, 
 		for _, path := range customHeader.Paths {
 			pathFiles, err := filepathx.Glob(path)
 			if err != nil {
-				panic(err)
+				return false, "", "", errors.New("Cannot get file matches of the custom header path: " + path)
 			}
 
 			file = strings.Replace(file, "./", "", 1)
@@ -101,10 +86,10 @@ func checkCustomHeader(file string, headersConfig HeadersConfig) (bool, string, 
 	}
 
 	if len(headerName) == 0 {
-		return false, "", ""
+		return false, "", "", nil
 	}
 
-	return true, headerName, header
+	return true, headerName, header, nil
 
 }
 
@@ -118,10 +103,9 @@ func exists(filename string, files []string) bool {
 }
 
 func verifyCustomLicenseHeader(file string, headerName string, header string) (bool, string) {
-	os.ReadFile(file)
 	bytes, err := os.ReadFile(file)
 	if err != nil {
-		return false, "Cannot read file"
+		return false, fmt.Sprintf("Cannot read file: %s", err)
 	}
 	content := string(bytes)
 	currentYear := time.Now().Format("2006")
@@ -134,12 +118,10 @@ func verifyCustomLicenseHeader(file string, headerName string, header string) (b
 	return false, "File doesn't have the same License Header as Custom Header: " + headerName
 }
 
-func verifyDefaultLicenseHeader(file string, defaultHeaders []PossibleHeader) (bool, string) {
-
-	os.ReadFile(file)
+func verifyDefaultLicenseHeader(file string, defaultHeaders []DefaultHeader) (bool, string) {
 	bytes, err := os.ReadFile(file)
 	if err != nil {
-		return false, "Cannot read file"
+		return false, fmt.Sprintf("Cannot read file: %s", err)
 	}
 	content := string(bytes)
 
@@ -153,68 +135,26 @@ func verifyDefaultLicenseHeader(file string, defaultHeaders []PossibleHeader) (b
 		}
 	}
 
-	return false, "File doesn't have the same License Header as any of the possible headers defined in the configuration file"
+	return false, "File doesn't have the same License Header as any of the default headers defined in the configuration file"
 
 }
 
-func verifyUpdateCustomLicenseHeader(file string, headerName string, header string) (bool, string) {
-	os.ReadFile(file)
-	bytes, err := os.ReadFile(file)
-	if err != nil {
-		return false, "Cannot read file"
+func checkFileLicense(f string, headersConfig HeadersConfig) (WrongLicenseHeader, error) {
+	isCustomHeader, headerName, header, pathErr := checkCustomHeader(f, headersConfig)
+	if pathErr != nil {
+		return WrongLicenseHeader{f, "Custom Header Path Error"}, pathErr
 	}
-	content := string(bytes)
-	currentYear := time.Now().Format("2006")
-	lastYear := time.Now().AddDate(-1, 0, 0).Format("2006")
-
-	currentYearheader := strings.ReplaceAll(header, "{YEAR}", currentYear)
-	lastYearheader := strings.ReplaceAll(header, "{YEAR}", lastYear)
-
-	if strings.HasPrefix(content, currentYearheader) {
-		return true, ""
-	} else if strings.HasPrefix(content, lastYearheader) {
-		newContent := strings.Replace(content, lastYearheader, currentYearheader, 1)
-		err := os.WriteFile(file, []byte(newContent), 0666)
-		if err != nil {
-			return false, "error changing year"
+	if isCustomHeader {
+		correctLicense, reason := verifyCustomLicenseHeader(f, headerName, header)
+		if !correctLicense {
+			return WrongLicenseHeader{f, reason}, nil
 		}
-
-		return true, ""
-
-	}
-	return false, "File doesn't have the same License Header as Custom Header: " + headerName
-}
-
-func verifyUpdateDefaultLicenseHeader(file string, defaultHeaders []PossibleHeader) (bool, string) {
-
-	bytes, err := os.ReadFile(file)
-	if err != nil {
-		return false, "Cannot read file"
-	}
-	content := string(bytes)
-
-	for _, defaultHeader := range defaultHeaders {
-		header := defaultHeader.Header
-		currentYear := time.Now().Format("2006")
-		lastYear := time.Now().AddDate(-1, 0, 0).Format("2006")
-		currentYearheader := strings.ReplaceAll(header, "{YEAR}", currentYear)
-		lastYearheader := strings.ReplaceAll(header, "{YEAR}", lastYear)
-
-		if strings.HasPrefix(content, currentYearheader) {
-			return true, ""
-		} else if strings.HasPrefix(content, lastYearheader) {
-			newContent := strings.Replace(content, lastYearheader, currentYearheader, 1)
-			err := os.WriteFile(file, []byte(newContent), 0666)
-			if err != nil {
-				return false, "error changing year"
-			}
-
-			return true, ""
-
+	} else {
+		correctLicense, reason := verifyDefaultLicenseHeader(f, headersConfig.DefaultHeaders)
+		if !correctLicense {
+			return WrongLicenseHeader{f, reason}, nil
 		}
-
 	}
 
-	return false, "File doesn't have the same License Header as any of the possible headers defined in the configuration file"
-
+	return WrongLicenseHeader{}, nil
 }
