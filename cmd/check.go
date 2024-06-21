@@ -15,11 +15,9 @@ var checkCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		configFile, _ := cmd.Flags().GetString("config")
 		headersConfig, err := caminolicense.GetHeadersConfig(configFile)
-
 		if err != nil {
 			return err
 		}
-
 		wrongFiles, err := caminolicense.CheckLicense(args, headersConfig)
 		if err != nil {
 			filesNumber := len(wrongFiles)
@@ -33,8 +31,8 @@ var checkCmd = &cobra.Command{
 			}
 			return err
 		}
+		fmt.Println("Check has finished successfully. All files have correct License Headers.")
 		return nil
-
 	},
 }
 

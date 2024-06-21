@@ -25,5 +25,8 @@ custom-headers:
       // Copyright (C) 2022-{YEAR}, Chain4Travel AG. All rights reserved.
       // See the file LICENSE for licensing terms.
     
-    paths:
+    include-paths:
       - "./**/camino*.go"
+
+    exclude-paths:
+      - "./**/camino_visitor2.go"

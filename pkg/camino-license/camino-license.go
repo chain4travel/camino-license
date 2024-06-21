@@ -20,7 +20,6 @@ func CheckLicense(files []string, headersConfig HeadersConfig) ([]WrongLicenseHe
 	var wrongFiles []WrongLicenseHeader
 	for _, f := range files {
 		info, err := os.Stat(f)
-
 		if err != nil {
 			wrongFiles = append(wrongFiles, WrongLicenseHeader{f, "File doesn't exist"})
 			continue
@@ -37,17 +36,15 @@ func CheckLicense(files []string, headersConfig HeadersConfig) ([]WrongLicenseHe
 				if strings.HasSuffix(path, ".pb.go") || matchErr != nil || match {
 					continue
 				}
-				wrongFile, checkErr := checkFileLicense(f, headersConfig)
-				wrongFiles = append(wrongFiles, wrongFile)
-				if checkErr != nil {
-					return wrongFiles, checkErr
+				isWrong, wrongFile := checkFileLicense(path, headersConfig)
+				if isWrong {
+					wrongFiles = append(wrongFiles, wrongFile)
 				}
 			}
 		} else {
-			wrongFile, checkErr := checkFileLicense(f, headersConfig)
-			wrongFiles = append(wrongFiles, wrongFile)
-			if checkErr != nil {
-				return wrongFiles, checkErr
+			isWrong, wrongFile := checkFileLicense(f, headersConfig)
+			if isWrong {
+				wrongFiles = append(wrongFiles, wrongFile)
 			}
 		}
 	}
@@ -57,40 +54,19 @@ func CheckLicense(files []string, headersConfig HeadersConfig) ([]WrongLicenseHe
 	}
 
 	return wrongFiles, nil
-
 }
 
-func checkCustomHeader(file string, headersConfig HeadersConfig) (bool, string, string, error) {
-	// check Custome Headers
-	headerName := ""
-	longestPath := ""
-	header := ""
+func checkCustomHeader(file string, headersConfig HeadersConfig) (bool, string, string) {
 	for _, customHeader := range headersConfig.CustomHeaders {
-
-		for _, path := range customHeader.Paths {
-			pathFiles, err := filepathx.Glob(path)
-			if err != nil {
-				return false, "", "", errors.New("Cannot get file matches of the custom header path: " + path)
-			}
-
-			file = strings.Replace(file, "./", "", 1)
-
-			if exists(file, pathFiles) {
-				if len(longestPath) < len(path) {
-					longestPath = path
-					headerName = customHeader.Name
-					header = customHeader.Header
-				}
-			}
+		absFile, fileErr := filepath.Abs(file)
+		if fileErr != nil {
+			absFile = file
+		}
+		if exists(absFile, customHeader.AllFiles) && !exists(absFile, customHeader.ExcludedFiles) {
+			return true, customHeader.Name, customHeader.Header
 		}
 	}
-
-	if len(headerName) == 0 {
-		return false, "", "", nil
-	}
-
-	return true, headerName, header, nil
-
+	return false, "", ""
 }
 
 func exists(filename string, files []string) bool {
@@ -136,25 +112,20 @@ func verifyDefaultLicenseHeader(file string, defaultHeaders []DefaultHeader) (bo
 	}
 
 	return false, "File doesn't have the same License Header as any of the default headers defined in the configuration file"
-
 }
 
-func checkFileLicense(f string, headersConfig HeadersConfig) (WrongLicenseHeader, error) {
-	isCustomHeader, headerName, header, pathErr := checkCustomHeader(f, headersConfig)
-	if pathErr != nil {
-		return WrongLicenseHeader{f, "Custom Header Path Error"}, pathErr
-	}
+func checkFileLicense(f string, headersConfig HeadersConfig) (bool, WrongLicenseHeader) {
+	isCustomHeader, headerName, header := checkCustomHeader(f, headersConfig)
 	if isCustomHeader {
 		correctLicense, reason := verifyCustomLicenseHeader(f, headerName, header)
 		if !correctLicense {
-			return WrongLicenseHeader{f, reason}, nil
+			return true, WrongLicenseHeader{f, reason}
 		}
 	} else {
 		correctLicense, reason := verifyDefaultLicenseHeader(f, headersConfig.DefaultHeaders)
 		if !correctLicense {
-			return WrongLicenseHeader{f, reason}, nil
+			return true, WrongLicenseHeader{f, reason}
 		}
 	}
-
-	return WrongLicenseHeader{}, nil
+	return false, WrongLicenseHeader{}
 }

@@ -1,9 +1,12 @@
 package caminolicense
 
 import (
+	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/pkg/errors"
+	"github.com/yargevad/filepathx"
 	"gopkg.in/yaml.v2"
 )
 
@@ -13,9 +16,12 @@ type DefaultHeader struct {
 }
 
 type CustomHeader struct {
-	Name   string   `yaml:"name"`
-	Header string   `yaml:"header"`
-	Paths  []string `yaml:"paths"`
+	Name          string   `yaml:"name"`
+	Header        string   `yaml:"header"`
+	IncludePaths  []string `yaml:"include-paths"`
+	ExcludePaths  []string `yaml:"exclude-paths"`
+	AllFiles      []string
+	ExcludedFiles []string
 }
 
 type HeadersConfig struct {
@@ -24,7 +30,6 @@ type HeadersConfig struct {
 }
 
 func GetHeadersConfig(configPath string) (HeadersConfig, error) {
-
 	yamlFile, err := os.ReadFile(configPath)
 	if err != nil {
 		return HeadersConfig{}, errors.Wrapf(err, "failed to read config file %s", configPath)
@@ -34,6 +39,58 @@ func GetHeadersConfig(configPath string) (HeadersConfig, error) {
 	if err != nil {
 		return HeadersConfig{}, errors.Wrapf(err, "failed to read config file %s", configPath)
 	}
+	configAbsPath, err := filepath.Abs(configPath)
+	if err != nil {
+		fmt.Println("Error: Couldn't get the absolute path for the config file:", configPath)
+		configAbsPath = configPath
+	}
 
+	for _, customHeader := range headersConfig.CustomHeaders {
+		includedFiles, err := getCustomHeaderIncludedFiles(customHeader, filepath.Dir(configAbsPath))
+		if err != nil {
+			return HeadersConfig{}, errors.Wrapf(err, "failed to read config file %s", configPath)
+		}
+		customHeader.AllFiles = includedFiles
+
+		excludedFiles, err := getCustomHeaderExcludedFiles(customHeader, filepath.Dir(configAbsPath))
+		if err != nil {
+			return HeadersConfig{}, errors.Wrapf(err, "failed to read config file %s", configPath)
+		}
+		customHeader.ExcludedFiles = excludedFiles
+	}
 	return *headersConfig, nil
+}
+
+func getCustomHeaderIncludedFiles(customHeader CustomHeader, dir string) ([]string, error) {
+	var files []string
+	for _, path := range customHeader.IncludePaths {
+		absPath := path
+		if !filepath.IsAbs(path) {
+			absPath = filepath.Join(dir, path)
+		}
+
+		pathFiles, err := filepathx.Glob(absPath)
+		if err != nil {
+			return files, errors.New("Cannot get file matches of the custom header included path: " + path)
+		}
+		files = append(files, pathFiles...)
+	}
+	return files, nil
+}
+
+func getCustomHeaderExcludedFiles(customHeader CustomHeader, dir string) ([]string, error) {
+	var files []string
+	for _, path := range customHeader.ExcludePaths {
+		absPath := path
+		if !filepath.IsAbs(path) {
+			absPath = filepath.Join(dir, path)
+		}
+
+		pathFiles, err := filepathx.Glob(absPath)
+		if err != nil {
+			return files, errors.New("Cannot get file matches of the custom header excluded path: " + path)
+		}
+		files = append(files, pathFiles...)
+	}
+	return files, nil
 }
