@@ -40,6 +40,6 @@ func TestReadConfig(t *testing.T) {
 }
 
 func TestNoConfig(t *testing.T) {
-	_, err := caminolicense.GetHeadersConfig("./confg2_test.yaml")
+	_, err := caminolicense.GetHeadersConfig("./config2_test.yaml")
 	require.ErrorIs(t, err, os.ErrNotExist)
 }
