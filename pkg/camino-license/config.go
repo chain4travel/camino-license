@@ -29,6 +29,7 @@ type HeadersConfig struct {
 	CustomHeaders  []CustomHeader  `yaml:"custom-headers"`
 }
 
+// read configuration file
 func GetHeadersConfig(configPath string) (HeadersConfig, error) {
 	yamlFile, err := os.ReadFile(configPath)
 	if err != nil {
@@ -45,22 +46,23 @@ func GetHeadersConfig(configPath string) (HeadersConfig, error) {
 		configAbsPath = configPath
 	}
 
-	for _, customHeader := range headersConfig.CustomHeaders {
+	for i, customHeader := range headersConfig.CustomHeaders {
 		includedFiles, err := getCustomHeaderIncludedFiles(customHeader, filepath.Dir(configAbsPath))
 		if err != nil {
 			return HeadersConfig{}, errors.Wrapf(err, "failed to read config file %s", configPath)
 		}
-		customHeader.AllFiles = includedFiles
+		headersConfig.CustomHeaders[i].AllFiles = includedFiles
 
 		excludedFiles, err := getCustomHeaderExcludedFiles(customHeader, filepath.Dir(configAbsPath))
 		if err != nil {
 			return HeadersConfig{}, errors.Wrapf(err, "failed to read config file %s", configPath)
 		}
-		customHeader.ExcludedFiles = excludedFiles
+		headersConfig.CustomHeaders[i].ExcludedFiles = excludedFiles
 	}
 	return *headersConfig, nil
 }
 
+// walk through directories of include-paths to get all possible files that matches the pattern
 func getCustomHeaderIncludedFiles(customHeader CustomHeader, dir string) ([]string, error) {
 	var files []string
 	for _, path := range customHeader.IncludePaths {
@@ -68,7 +70,6 @@ func getCustomHeaderIncludedFiles(customHeader CustomHeader, dir string) ([]stri
 		if !filepath.IsAbs(path) {
 			absPath = filepath.Join(dir, path)
 		}
-
 		pathFiles, err := filepathx.Glob(absPath)
 		if err != nil {
 			return files, errors.New("Cannot get file matches of the custom header included path: " + path)
@@ -78,6 +79,7 @@ func getCustomHeaderIncludedFiles(customHeader CustomHeader, dir string) ([]stri
 	return files, nil
 }
 
+// walk through directories of exclude-paths to get all possible files that matches the pattern
 func getCustomHeaderExcludedFiles(customHeader CustomHeader, dir string) ([]string, error) {
 	var files []string
 	for _, path := range customHeader.ExcludePaths {
@@ -85,7 +87,6 @@ func getCustomHeaderExcludedFiles(customHeader CustomHeader, dir string) ([]stri
 		if !filepath.IsAbs(path) {
 			absPath = filepath.Join(dir, path)
 		}
-
 		pathFiles, err := filepathx.Glob(absPath)
 		if err != nil {
 			return files, errors.New("Cannot get file matches of the custom header excluded path: " + path)

@@ -1,0 +1,22 @@
+default-headers: 
+  - name: l1
+    header: |
+      // Copyright (C) 2022-{YEAR}, Chain4Travel AG. All rights reserved.
+      // L1
+
+  - name: l2
+    header: |
+      // Copyright (C) 2022-{YEAR}, Chain4Travel AG. All rights reserved.
+      // L2
+
+custom-headers:
+  - name: l3
+    header: |
+      // Copyright (C) 2022-{YEAR}, Chain4Travel AG. All rights reserved.
+      // L3
+    
+    include-paths:
+      - "./**/camino*.go"
+
+    exclude-paths:
+      - "./**/camino_*exclude.go"

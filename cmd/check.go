@@ -9,7 +9,7 @@ import (
 
 // checkCmd represents the check command
 var checkCmd = &cobra.Command{
-	Use:   "check [FLAGS] FILES",
+	Use:   "check [FLAGS] FILES/DIRS",
 	Short: "camino-license to check license headers",
 	Long:  `camino-license to check license headers if they are compatible with the templates definded in the configuration file`,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -36,6 +36,7 @@ var checkCmd = &cobra.Command{
 	},
 }
 
+// adding flags and check to camino-license command
 func init() {
 	checkCmd.Flags().StringP("config", "c", "config.yaml", "configuration yaml file path")
 	rootCmd.AddCommand(checkCmd)

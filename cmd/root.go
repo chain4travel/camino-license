@@ -7,10 +7,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// camino-license command
 var rootCmd = &cobra.Command{
-	Use:   "camino-license COMMAND [FLAGS] FILES",
-	Short: "camino-license pkg to check and update license headers",
-	Long:  `camino-license pkg to check and update license headers according to a given yaml configuration`,
+	Use:   "camino-license COMMAND [FLAGS] FILES/DIRS",
+	Short: "camino-license pkg to check license headers",
+	Long:  `camino-license pkg to check license headers according to a given yaml configuration`,
 }
 
 func Execute() {

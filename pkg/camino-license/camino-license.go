@@ -16,6 +16,9 @@ type WrongLicenseHeader struct {
 	Reason string
 }
 
+var CheckErr = errors.New("Some files has wrong License Header")
+
+// public function to start checking for license headers in a list of files or directories
 func CheckLicense(files []string, headersConfig HeadersConfig) ([]WrongLicenseHeader, error) {
 	var wrongFiles []WrongLicenseHeader
 	for _, f := range files {
@@ -50,12 +53,30 @@ func CheckLicense(files []string, headersConfig HeadersConfig) ([]WrongLicenseHe
 	}
 
 	if len(wrongFiles) > 0 {
-		return wrongFiles, errors.New("Some files has wrong License Header")
+		return wrongFiles, CheckErr
 	}
 
 	return wrongFiles, nil
 }
 
+// To check if a file should have a custom license header or one of the default ones
+func checkFileLicense(f string, headersConfig HeadersConfig) (bool, WrongLicenseHeader) {
+	isCustomHeader, headerName, header := checkCustomHeader(f, headersConfig)
+	if isCustomHeader {
+		correctLicense, reason := verifyCustomLicenseHeader(f, headerName, header)
+		if !correctLicense {
+			return true, WrongLicenseHeader{f, reason}
+		}
+	} else {
+		correctLicense, reason := verifyDefaultLicenseHeader(f, headersConfig.DefaultHeaders)
+		if !correctLicense {
+			return true, WrongLicenseHeader{f, reason}
+		}
+	}
+	return false, WrongLicenseHeader{}
+}
+
+// to check if the file is included in a custom header path
 func checkCustomHeader(file string, headersConfig HeadersConfig) (bool, string, string) {
 	for _, customHeader := range headersConfig.CustomHeaders {
 		absFile, fileErr := filepath.Abs(file)
@@ -69,6 +90,7 @@ func checkCustomHeader(file string, headersConfig HeadersConfig) (bool, string, 
 	return false, "", ""
 }
 
+// Checks if a file exists in a list of files
 func exists(filename string, files []string) bool {
 	for _, f := range files {
 		if f == filename {
@@ -78,6 +100,7 @@ func exists(filename string, files []string) bool {
 	return false
 }
 
+// to verify if a custom license header from the configuration is similar to the one in the file.
 func verifyCustomLicenseHeader(file string, headerName string, header string) (bool, string) {
 	bytes, err := os.ReadFile(file)
 	if err != nil {
@@ -94,6 +117,7 @@ func verifyCustomLicenseHeader(file string, headerName string, header string) (b
 	return false, "File doesn't have the same License Header as Custom Header: " + headerName
 }
 
+// to verify if any of the default license headers from the configuration is similar to the one in the file.
 func verifyDefaultLicenseHeader(file string, defaultHeaders []DefaultHeader) (bool, string) {
 	bytes, err := os.ReadFile(file)
 	if err != nil {
@@ -112,20 +136,4 @@ func verifyDefaultLicenseHeader(file string, defaultHeaders []DefaultHeader) (bo
 	}
 
 	return false, "File doesn't have the same License Header as any of the default headers defined in the configuration file"
-}
-
-func checkFileLicense(f string, headersConfig HeadersConfig) (bool, WrongLicenseHeader) {
-	isCustomHeader, headerName, header := checkCustomHeader(f, headersConfig)
-	if isCustomHeader {
-		correctLicense, reason := verifyCustomLicenseHeader(f, headerName, header)
-		if !correctLicense {
-			return true, WrongLicenseHeader{f, reason}
-		}
-	} else {
-		correctLicense, reason := verifyDefaultLicenseHeader(f, headersConfig.DefaultHeaders)
-		if !correctLicense {
-			return true, WrongLicenseHeader{f, reason}
-		}
-	}
-	return false, WrongLicenseHeader{}
 }
