@@ -20,4 +20,4 @@ jobs:
           go-version: 1.22
           cache: false
       - name: run test
-        run: go test ./pkg/camino-license/
+        run: go test ./pkg/camino-license/ ./pkg/config/

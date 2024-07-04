@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	caminolicense "github.com/chain4travel/camino-license/pkg/camino-license"
+	config "github.com/chain4travel/camino-license/pkg/config"
 	"github.com/spf13/cobra"
 )
 
@@ -17,7 +18,7 @@ var checkCmd = &cobra.Command{
 	Long:  `camino-license to check license headers if they are compatible with the templates definded in the configuration file`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		configFile, _ := cmd.Flags().GetString("config")
-		headersConfig, err := caminolicense.GetHeadersConfig(configFile)
+		headersConfig, err := config.GetHeadersConfig(configFile)
 		if err != nil {
 			return err
 		}
