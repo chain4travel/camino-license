@@ -16,7 +16,7 @@ import (
 )
 
 var headersConfig = config.HeadersConfig{
-	[]config.DefaultHeader{
+	DefaultHeaders: []config.DefaultHeader{
 		{
 			Name:   "l1",
 			Header: "// Copyright (C) 2022-{YEAR}, Chain4Travel AG. All rights reserved.\n// L1\n",
@@ -25,7 +25,7 @@ var headersConfig = config.HeadersConfig{
 			Name:   "l2",
 			Header: "// Copyright (C) 2022-{YEAR}, Chain4Travel AG. All rights reserved.\n// L2\n",
 		},
-	}, []config.CustomHeader{
+	}, CustomHeaders: []config.CustomHeader{
 		{
 			Name:         "l3",
 			Header:       "// Copyright (C) 2022-{YEAR}, Chain4Travel AG. All rights reserved.\n// L3\n",
@@ -36,12 +36,12 @@ var headersConfig = config.HeadersConfig{
 }
 
 func TestCorrectDefaultLicense(t *testing.T) {
-	require.NoError(t, os.WriteFile("./test_correct_default_1.go", []byte(fmt.Sprintf("// Copyright (C) 2022-%d, Chain4Travel AG. All rights reserved.\n// L1\n\n package caminolicense", time.Now().Year())), 0600))
+	require.NoError(t, os.WriteFile("./test_correct_default_1.go", []byte(fmt.Sprintf("// Copyright (C) 2022-%d, Chain4Travel AG. All rights reserved.\n// L1\n\n package caminolicense", time.Now().Year())), 0o600))
 	wrongFiles, err := caminolicense.CheckLicense([]string{"./test_correct_default_1.go"}, headersConfig)
 	require.NoError(t, err)
 	require.Empty(t, wrongFiles)
 	require.NoError(t, os.Remove("./test_correct_default_1.go"))
-	require.NoError(t, os.WriteFile("./test_correct_default_2.go", []byte(fmt.Sprintf("// Copyright (C) 2022-%d, Chain4Travel AG. All rights reserved.\n// L2\n\n package caminolicense", time.Now().Year())), 0600))
+	require.NoError(t, os.WriteFile("./test_correct_default_2.go", []byte(fmt.Sprintf("// Copyright (C) 2022-%d, Chain4Travel AG. All rights reserved.\n// L2\n\n package caminolicense", time.Now().Year())), 0o600))
 	wrongFiles2, err2 := caminolicense.CheckLicense([]string{"./test_correct_default_2.go"}, headersConfig)
 	require.NoError(t, err2)
 	require.Empty(t, wrongFiles2)
@@ -49,7 +49,7 @@ func TestCorrectDefaultLicense(t *testing.T) {
 }
 
 func TestWrongDefaultLicense(t *testing.T) {
-	require.NoError(t, os.WriteFile("./test_wrong_default.go", []byte(fmt.Sprintf("// Copyright (C) 2022-%d, Chain4Travel AG. All rights reserved.\n// Wrong License\n\n package caminolicense", time.Now().Year())), 0600))
+	require.NoError(t, os.WriteFile("./test_wrong_default.go", []byte(fmt.Sprintf("// Copyright (C) 2022-%d, Chain4Travel AG. All rights reserved.\n// Wrong License\n\n package caminolicense", time.Now().Year())), 0o600))
 	wrongFiles, err := caminolicense.CheckLicense([]string{"./test_wrong_default.go"}, headersConfig)
 	require.ErrorIs(t, err, caminolicense.CheckErr)
 	require.Equal(t, 1, len(wrongFiles))
@@ -58,8 +58,8 @@ func TestWrongDefaultLicense(t *testing.T) {
 }
 
 func TestCorrectCustomLicense(t *testing.T) {
-	require.NoError(t, os.WriteFile("./camino_test_correct_custom.go", []byte(fmt.Sprintf("// Copyright (C) 2022-%d, Chain4Travel AG. All rights reserved.\n// L3\n\n package caminolicense", time.Now().Year())), 0600))
-	require.NoError(t, os.WriteFile("./camino_test_exclude.go", []byte(fmt.Sprintf("// Copyright (C) 2022-%d, Chain4Travel AG. All rights reserved.\n// L1\n\n package caminolicense", time.Now().Year())), 0600))
+	require.NoError(t, os.WriteFile("./camino_test_correct_custom.go", []byte(fmt.Sprintf("// Copyright (C) 2022-%d, Chain4Travel AG. All rights reserved.\n// L3\n\n package caminolicense", time.Now().Year())), 0o600))
+	require.NoError(t, os.WriteFile("./camino_test_exclude.go", []byte(fmt.Sprintf("// Copyright (C) 2022-%d, Chain4Travel AG. All rights reserved.\n// L1\n\n package caminolicense", time.Now().Year())), 0o600))
 	headersConfig2, _ := config.GetHeadersConfig("../config_test.yaml")
 	wrongFiles, err := caminolicense.CheckLicense([]string{"./camino_test_correct_custom.go", "./camino_test_exclude.go"}, headersConfig2)
 	require.NoError(t, err)
@@ -69,8 +69,8 @@ func TestCorrectCustomLicense(t *testing.T) {
 }
 
 func TestWrongCustomLicense(t *testing.T) {
-	require.NoError(t, os.WriteFile("./camino_test_exclude.go", []byte(fmt.Sprintf("// Copyright (C) 2022-%d, Chain4Travel AG. All rights reserved.\n// L3\n\n package caminolicense", time.Now().Year())), 0600))
-	require.NoError(t, os.WriteFile("./camino_test_wrong_custom.go", []byte(fmt.Sprintf("// Copyright (C) 2022-%d, Chain4Travel AG. All rights reserved.\n// L1\n\n package caminolicense", time.Now().Year())), 0600))
+	require.NoError(t, os.WriteFile("./camino_test_exclude.go", []byte(fmt.Sprintf("// Copyright (C) 2022-%d, Chain4Travel AG. All rights reserved.\n// L3\n\n package caminolicense", time.Now().Year())), 0o600))
+	require.NoError(t, os.WriteFile("./camino_test_wrong_custom.go", []byte(fmt.Sprintf("// Copyright (C) 2022-%d, Chain4Travel AG. All rights reserved.\n// L1\n\n package caminolicense", time.Now().Year())), 0o600))
 	headersConfig2, _ := config.GetHeadersConfig("../config_test.yaml")
 	wrongFiles, err := caminolicense.CheckLicense([]string{"./camino_test_wrong_custom.go", "./camino_test_exclude.go"}, headersConfig2)
 	require.ErrorIs(t, err, caminolicense.CheckErr)
