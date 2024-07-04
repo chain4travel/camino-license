@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -88,21 +89,11 @@ func checkCustomHeader(file string, headersConfig config.HeadersConfig) (bool, s
 		if fileErr != nil {
 			absFile = file
 		}
-		if exists(absFile, customHeader.AllFiles) && !exists(absFile, customHeader.ExcludedFiles) {
+		if slices.Contains(customHeader.AllFiles, absFile) && !slices.Contains(customHeader.ExcludedFiles, absFile) {
 			return true, customHeader.Name, customHeader.Header
 		}
 	}
 	return false, "", ""
-}
-
-// Checks if a file exists in a list of files
-func exists(filename string, files []string) bool {
-	for _, f := range files {
-		if f == filename {
-			return true
-		}
-	}
-	return false
 }
 
 // to verify if a custom license header from the configuration is similar to the one in the file.
