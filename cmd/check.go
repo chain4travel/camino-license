@@ -22,7 +22,8 @@ var checkCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		wrongFiles, err := caminolicense.CheckLicense(args, headersConfig)
+		h := caminolicense.CaminoLicenseHeader{Config: headersConfig}
+		wrongFiles, err := h.CheckLicense(args)
 		if err != nil {
 			filesNumber := len(wrongFiles)
 			if filesNumber == 1 {

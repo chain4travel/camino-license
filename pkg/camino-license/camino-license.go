@@ -21,10 +21,14 @@ type WrongLicenseHeader struct {
 	Reason string
 }
 
+type CaminoLicenseHeader struct {
+	Config config.HeadersConfig
+}
+
 var CheckErr = errors.New("Some files has wrong License Header")
 
 // public function to start checking for license headers in a list of files or directories
-func CheckLicense(files []string, headersConfig config.HeadersConfig) ([]WrongLicenseHeader, error) {
+func (h CaminoLicenseHeader) CheckLicense(files []string) ([]WrongLicenseHeader, error) {
 	var wrongFiles []WrongLicenseHeader
 	for _, f := range files {
 		info, err := os.Stat(f)
@@ -45,13 +49,13 @@ func CheckLicense(files []string, headersConfig config.HeadersConfig) ([]WrongLi
 				if strings.HasSuffix(path, ".pb.go") || matchErr != nil || match {
 					continue
 				}
-				isWrong, wrongFile := checkFileLicense(path, headersConfig)
+				isWrong, wrongFile := h.checkFileLicense(path)
 				if isWrong {
 					wrongFiles = append(wrongFiles, wrongFile)
 				}
 			}
 		} else {
-			isWrong, wrongFile := checkFileLicense(f, headersConfig)
+			isWrong, wrongFile := h.checkFileLicense(f)
 			if isWrong {
 				wrongFiles = append(wrongFiles, wrongFile)
 			}
@@ -66,15 +70,15 @@ func CheckLicense(files []string, headersConfig config.HeadersConfig) ([]WrongLi
 }
 
 // To check if a file should have a custom license header or one of the default ones
-func checkFileLicense(f string, headersConfig config.HeadersConfig) (bool, WrongLicenseHeader) {
-	isCustomHeader, headerName, header := checkCustomHeader(f, headersConfig)
+func (h CaminoLicenseHeader) checkFileLicense(f string) (bool, WrongLicenseHeader) {
+	isCustomHeader, headerName, header := h.checkCustomHeader(f)
 	if isCustomHeader {
 		correctLicense, reason := verifyCustomLicenseHeader(f, headerName, header)
 		if !correctLicense {
 			return true, WrongLicenseHeader{f, reason}
 		}
 	} else {
-		correctLicense, reason := verifyDefaultLicenseHeader(f, headersConfig.DefaultHeaders)
+		correctLicense, reason := h.verifyDefaultLicenseHeader(f)
 		if !correctLicense {
 			return true, WrongLicenseHeader{f, reason}
 		}
@@ -83,8 +87,8 @@ func checkFileLicense(f string, headersConfig config.HeadersConfig) (bool, Wrong
 }
 
 // to check if the file is included in a custom header path
-func checkCustomHeader(file string, headersConfig config.HeadersConfig) (bool, string, string) {
-	for _, customHeader := range headersConfig.CustomHeaders {
+func (h CaminoLicenseHeader) checkCustomHeader(file string) (bool, string, string) {
+	for _, customHeader := range h.Config.CustomHeaders {
 		absFile, fileErr := filepath.Abs(file)
 		if fileErr != nil {
 			absFile = file
@@ -114,14 +118,14 @@ func verifyCustomLicenseHeader(file string, headerName string, header string) (b
 }
 
 // to verify if any of the default license headers from the configuration is similar to the one in the file.
-func verifyDefaultLicenseHeader(file string, defaultHeaders []config.DefaultHeader) (bool, string) {
+func (h CaminoLicenseHeader) verifyDefaultLicenseHeader(file string) (bool, string) {
 	bytes, err := os.ReadFile(file)
 	if err != nil {
 		return false, fmt.Sprintf("Cannot read file: %s", err)
 	}
 	content := string(bytes)
 
-	for _, defaultHeader := range defaultHeaders {
+	for _, defaultHeader := range h.Config.DefaultHeaders {
 		header := defaultHeader.Header
 		currentYear := time.Now().Format("2006")
 		header = strings.ReplaceAll(header, "{YEAR}", currentYear)
