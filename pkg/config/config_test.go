@@ -1,22 +1,20 @@
 // Copyright (C) 2022-2024, Chain4Travel AG. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package config_test
+package config
 
 import (
 	"os"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
-	config "github.com/chain4travel/camino-license/pkg/config"
 )
 
 func TestReadConfig(t *testing.T) {
-	headersConfig, err := config.GetHeadersConfig("../config_test.yaml")
+	headersConfig, err := GetHeadersConfig("../config_test.yaml")
 	require.NoError(t, err)
-	expectedHeadersConfig := config.HeadersConfig{
-		[]config.DefaultHeader{
+	expectedHeadersConfig := HeadersConfig{
+		[]DefaultHeader{
 			{
 				Name:   "l1",
 				Header: "// Copyright (C) 2022-{YEAR}, Chain4Travel AG. All rights reserved.\n// L1\n",
@@ -26,7 +24,7 @@ func TestReadConfig(t *testing.T) {
 				Header: "// Copyright (C) 2022-{YEAR}, Chain4Travel AG. All rights reserved.\n// L2\n",
 			},
 		},
-		[]config.CustomHeader{
+		[]CustomHeader{
 			{
 				Name:         "l3",
 				Header:       "// Copyright (C) 2022-{YEAR}, Chain4Travel AG. All rights reserved.\n// L3\n",
@@ -43,6 +41,6 @@ func TestReadConfig(t *testing.T) {
 }
 
 func TestNoConfig(t *testing.T) {
-	_, err := config.GetHeadersConfig("../config2_test.yaml")
+	_, err := GetHeadersConfig("../config2_test.yaml")
 	require.ErrorIs(t, err, os.ErrNotExist)
 }

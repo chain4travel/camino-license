@@ -27,6 +27,9 @@ type CaminoLicenseHeader struct {
 
 var CheckErr = errors.New("Some files has wrong License Header")
 
+const defaultHeaderError = "File doesn't have the same License Header as any of the default headers defined in the configuration file"
+const customHeaderError = "File doesn't have the same License Header as Custom Header: "
+
 // public function to start checking for license headers in a list of files or directories
 func (h CaminoLicenseHeader) CheckLicense(files []string) ([]WrongLicenseHeader, error) {
 	var wrongFiles []WrongLicenseHeader
@@ -114,7 +117,7 @@ func verifyCustomLicenseHeader(file string, headerName string, header string) (b
 	if strings.HasPrefix(content, header) {
 		return true, ""
 	}
-	return false, "File doesn't have the same License Header as Custom Header: " + headerName
+	return false, customHeaderError + headerName
 }
 
 // to verify if any of the default license headers from the configuration is similar to the one in the file.
@@ -135,5 +138,5 @@ func (h CaminoLicenseHeader) verifyDefaultLicenseHeader(file string) (bool, stri
 		}
 	}
 
-	return false, "File doesn't have the same License Header as any of the default headers defined in the configuration file"
+	return false, defaultHeaderError
 }

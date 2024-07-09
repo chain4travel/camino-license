@@ -1,7 +1,7 @@
 // Copyright (C) 2022-2024, Chain4Travel AG. All rights reserved.
 // See the file LICENSE for licensing terms.
 
-package caminolicense_test
+package caminolicense
 
 import (
 	"fmt"
@@ -11,7 +11,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	caminolicense "github.com/chain4travel/camino-license/pkg/camino-license"
 	config "github.com/chain4travel/camino-license/pkg/config"
 )
 
@@ -37,7 +36,7 @@ var headersConfig = config.HeadersConfig{
 
 func TestCorrectDefaultLicense(t *testing.T) {
 	require.NoError(t, os.WriteFile("./test_correct_default_1.go", []byte(fmt.Sprintf("// Copyright (C) 2022-%d, Chain4Travel AG. All rights reserved.\n// L1\n\n package caminolicense", time.Now().Year())), 0o600))
-	h := caminolicense.CaminoLicenseHeader{Config: headersConfig}
+	h := CaminoLicenseHeader{Config: headersConfig}
 	wrongFiles, err := h.CheckLicense([]string{"./test_correct_default_1.go"})
 	require.NoError(t, err)
 	require.Empty(t, wrongFiles)
@@ -51,13 +50,13 @@ func TestCorrectDefaultLicense(t *testing.T) {
 
 func TestWrongDefaultLicense(t *testing.T) {
 	require.NoError(t, os.WriteFile("./test_wrong_default.go", []byte(fmt.Sprintf("// Copyright (C) 2022-%d, Chain4Travel AG. All rights reserved.\n// Wrong License\n\n package caminolicense", time.Now().Year())), 0o600))
-	h := caminolicense.CaminoLicenseHeader{Config: headersConfig}
+	h := CaminoLicenseHeader{Config: headersConfig}
 	wrongFiles, err := h.CheckLicense([]string{"./test_wrong_default.go"})
-	require.ErrorIs(t, err, caminolicense.CheckErr)
-	expectedWrongFiles := []caminolicense.WrongLicenseHeader{
+	require.ErrorIs(t, err, CheckErr)
+	expectedWrongFiles := []WrongLicenseHeader{
 		{
 			File:   "./test_wrong_default.go",
-			Reason: "File doesn't have the same License Header as any of the default headers defined in the configuration file",
+			Reason: defaultHeaderError,
 		},
 	}
 	require.Equal(t, expectedWrongFiles, wrongFiles)
@@ -68,7 +67,7 @@ func TestCorrectCustomLicense(t *testing.T) {
 	require.NoError(t, os.WriteFile("./camino_test_correct_custom.go", []byte(fmt.Sprintf("// Copyright (C) 2022-%d, Chain4Travel AG. All rights reserved.\n// L3\n\n package caminolicense", time.Now().Year())), 0o600))
 	require.NoError(t, os.WriteFile("./camino_test_exclude.go", []byte(fmt.Sprintf("// Copyright (C) 2022-%d, Chain4Travel AG. All rights reserved.\n// L1\n\n package caminolicense", time.Now().Year())), 0o600))
 	headersConfig2, _ := config.GetHeadersConfig("../config_test.yaml")
-	h := caminolicense.CaminoLicenseHeader{Config: headersConfig2}
+	h := CaminoLicenseHeader{Config: headersConfig2}
 	wrongFiles, err := h.CheckLicense([]string{"./camino_test_correct_custom.go", "./camino_test_exclude.go"})
 	require.NoError(t, err)
 	require.Empty(t, wrongFiles)
@@ -80,17 +79,17 @@ func TestWrongCustomLicense(t *testing.T) {
 	require.NoError(t, os.WriteFile("./camino_test_exclude.go", []byte(fmt.Sprintf("// Copyright (C) 2022-%d, Chain4Travel AG. All rights reserved.\n// L3\n\n package caminolicense", time.Now().Year())), 0o600))
 	require.NoError(t, os.WriteFile("./camino_test_wrong_custom.go", []byte(fmt.Sprintf("// Copyright (C) 2022-%d, Chain4Travel AG. All rights reserved.\n// L1\n\n package caminolicense", time.Now().Year())), 0o600))
 	headersConfig2, _ := config.GetHeadersConfig("../config_test.yaml")
-	h := caminolicense.CaminoLicenseHeader{Config: headersConfig2}
+	h := CaminoLicenseHeader{Config: headersConfig2}
 	wrongFiles, err := h.CheckLicense([]string{"./camino_test_wrong_custom.go", "./camino_test_exclude.go"})
-	require.ErrorIs(t, err, caminolicense.CheckErr)
-	expectedWrongFiles := []caminolicense.WrongLicenseHeader{
+	require.ErrorIs(t, err, CheckErr)
+	expectedWrongFiles := []WrongLicenseHeader{
 		{
 			File:   "./camino_test_wrong_custom.go",
-			Reason: "File doesn't have the same License Header as Custom Header: l3",
+			Reason: customHeaderError + headersConfig2.CustomHeaders[0].Name,
 		},
 		{
 			File:   "./camino_test_exclude.go",
-			Reason: "File doesn't have the same License Header as any of the default headers defined in the configuration file",
+			Reason: defaultHeaderError,
 		},
 	}
 	require.Equal(t, expectedWrongFiles, wrongFiles)
