@@ -5,6 +5,7 @@ package config
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -13,6 +14,7 @@ import (
 func TestReadConfig(t *testing.T) {
 	headersConfig, err := GetHeadersConfig("../config_test.yaml")
 	require.NoError(t, err)
+	currentPath, _ := filepath.Abs("..")
 	expectedHeadersConfig := HeadersConfig{
 		[]DefaultHeader{
 			{
@@ -30,14 +32,11 @@ func TestReadConfig(t *testing.T) {
 				Header:       "// Copyright (C) 2022-{YEAR}, Chain4Travel AG. All rights reserved.\n// L3\n",
 				IncludePaths: []string{"./**/camino*.go"},
 				ExcludePaths: []string{"./**/camino_*exclude.go"},
+				AllFiles:     []string{currentPath + "/camino-license/camino-license.go", currentPath + "/camino-license/camino-license_test.go"},
 			},
 		},
 	}
-	require.Equal(t, expectedHeadersConfig.DefaultHeaders, headersConfig.DefaultHeaders)
-	require.Equal(t, expectedHeadersConfig.CustomHeaders[0].Name, headersConfig.CustomHeaders[0].Name)
-	require.Equal(t, expectedHeadersConfig.CustomHeaders[0].Header, headersConfig.CustomHeaders[0].Header)
-	require.Equal(t, expectedHeadersConfig.CustomHeaders[0].IncludePaths, headersConfig.CustomHeaders[0].IncludePaths)
-	require.Equal(t, expectedHeadersConfig.CustomHeaders[0].ExcludePaths, headersConfig.CustomHeaders[0].ExcludePaths)
+	require.Equal(t, expectedHeadersConfig, headersConfig)
 }
 
 func TestNoConfig(t *testing.T) {
