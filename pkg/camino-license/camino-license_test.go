@@ -54,8 +54,13 @@ func TestWrongDefaultLicense(t *testing.T) {
 	h := caminolicense.CaminoLicenseHeader{Config: headersConfig}
 	wrongFiles, err := h.CheckLicense([]string{"./test_wrong_default.go"})
 	require.ErrorIs(t, err, caminolicense.CheckErr)
-	require.Equal(t, 1, len(wrongFiles))
-	require.Equal(t, "./test_wrong_default.go", wrongFiles[0].File)
+	expectedWrongFiles := []caminolicense.WrongLicenseHeader{
+		{
+			File:   "./test_wrong_default.go",
+			Reason: "File doesn't have the same License Header as any of the default headers defined in the configuration file",
+		},
+	}
+	require.Equal(t, expectedWrongFiles, wrongFiles)
 	require.NoError(t, os.Remove("./test_wrong_default.go"))
 }
 
@@ -78,9 +83,17 @@ func TestWrongCustomLicense(t *testing.T) {
 	h := caminolicense.CaminoLicenseHeader{Config: headersConfig2}
 	wrongFiles, err := h.CheckLicense([]string{"./camino_test_wrong_custom.go", "./camino_test_exclude.go"})
 	require.ErrorIs(t, err, caminolicense.CheckErr)
-	require.Equal(t, 2, len(wrongFiles))
-	require.Equal(t, "./camino_test_wrong_custom.go", wrongFiles[0].File)
-	require.Equal(t, "./camino_test_exclude.go", wrongFiles[1].File)
+	expectedWrongFiles := []caminolicense.WrongLicenseHeader{
+		{
+			File:   "./camino_test_wrong_custom.go",
+			Reason: "File doesn't have the same License Header as Custom Header: l3",
+		},
+		{
+			File:   "./camino_test_exclude.go",
+			Reason: "File doesn't have the same License Header as any of the default headers defined in the configuration file",
+		},
+	}
+	require.Equal(t, expectedWrongFiles, wrongFiles)
 	require.NoError(t, os.Remove("./camino_test_wrong_custom.go"))
 	require.NoError(t, os.Remove("./camino_test_exclude.go"))
 }
