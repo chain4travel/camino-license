@@ -71,7 +71,6 @@ func (h CaminoLicenseHeader) CheckLicense(files []string) ([]WrongLicenseHeader,
 
 // To check if a file should have a custom license header or one of the default ones
 func (h CaminoLicenseHeader) checkFileLicense(f string) (bool, WrongLicenseHeader) {
-
 	absFile, fileErr := filepath.Abs(f)
 	if fileErr != nil {
 		return true, WrongLicenseHeader{f, "Couldn't get the absolute path of this file"}
