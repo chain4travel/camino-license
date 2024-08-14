@@ -30,3 +30,6 @@ custom-headers:
 
     exclude-paths:
       - "./**/camino_visitor2.go"
+
+headers-excluded-paths:
+  - "./**/excluded_*.go"

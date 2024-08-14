@@ -28,8 +28,10 @@ type CustomHeader struct {
 }
 
 type HeadersConfig struct {
-	DefaultHeaders []DefaultHeader `yaml:"default-headers"`
-	CustomHeaders  []CustomHeader  `yaml:"custom-headers"`
+	DefaultHeaders       []DefaultHeader `yaml:"default-headers"`
+	CustomHeaders        []CustomHeader  `yaml:"custom-headers"`
+	ExcludedHeadersPaths []string        `yaml:"headers-excluded-paths"`
+	ExcludedFiles        []string
 }
 
 // read configuration file
@@ -62,6 +64,11 @@ func GetHeadersConfig(configPath string) (HeadersConfig, error) {
 		}
 		headersConfig.CustomHeaders[i].ExcludedFiles = excludedFiles
 	}
+	excludedFiles, err := getExcludedFiles(headersConfig.ExcludedHeadersPaths, filepath.Dir(configAbsPath))
+	if err != nil {
+		return HeadersConfig{}, fmt.Errorf("failed to read config file %s: %w", configPath, err)
+	}
+	headersConfig.ExcludedFiles = excludedFiles
 	return *headersConfig, nil
 }
 
@@ -86,6 +93,23 @@ func getCustomHeaderIncludedFiles(customHeader CustomHeader, dir string) ([]stri
 func getCustomHeaderExcludedFiles(customHeader CustomHeader, dir string) ([]string, error) {
 	var files []string
 	for _, path := range customHeader.ExcludePaths {
+		absPath := path
+		if !filepath.IsAbs(path) {
+			absPath = filepath.Join(dir, path)
+		}
+		pathFiles, err := filepathx.Glob(absPath)
+		if err != nil {
+			return files, errors.New("Cannot get file matches of the custom header excluded path: " + path)
+		}
+		files = append(files, pathFiles...)
+	}
+	return files, nil
+}
+
+// walk through directories of headers-excluded-paths to get all possible files that matches the pattern
+func getExcludedFiles(paths []string, dir string) ([]string, error) {
+	var files []string
+	for _, path := range paths {
 		absPath := path
 		if !filepath.IsAbs(path) {
 			absPath = filepath.Join(dir, path)

@@ -20,3 +20,6 @@ custom-headers:
 
     exclude-paths:
       - "./**/camino_*exclude.go"
+      
+headers-excluded-paths:
+  - "./**/excluded_*.go"
