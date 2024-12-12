@@ -46,6 +46,9 @@ custom-headers:
 
     exclude-paths:
       - "./**/camino_visitor2.go"
+  
+headers-excluded-paths:
+  - "./**/excluded_*.go"
 
 ```
 `default-headers`: If the file is not specified in the custom-headers paths, then it should contain one of the default headers
@@ -59,5 +62,7 @@ custom-headers:
 `include-paths`: list of path pattern to identify files which should contain that custom license header. Use `**`to include all sub directories. Use `*` to include all matching pattern in the same directory. **(Required if custom-headers is specified)**
 
 `exclude-paths`: list of path pattern to identify files which will be excluded from `include-paths`. Use `**`to include all sub directories. Use `*` to include all matching pattern in the same directory.
+
+`headers-excluded-paths`: list of path pattern to identify files which will be excluded from license header checking. Use `**`to include all sub directories. Use `*` to include all matching pattern in the same directory.
 
 `{YEAR}`: It will be automatically replaced with current year when the check runs.
