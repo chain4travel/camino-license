@@ -49,11 +49,6 @@ func (h CaminoLicenseHeader) CheckLicense(files []string) ([]WrongLicenseHeader,
 				continue
 			}
 			for _, path := range pathFiles {
-				// TODO: set license exclusions to be configured in the configuration file
-				match, matchErr := filepath.Match("mock_*.go", filepath.Base(path))
-				if strings.HasSuffix(path, ".pb.go") || matchErr != nil || match {
-					continue
-				}
 				isWrong, wrongFile := h.checkFileLicense(path)
 				if isWrong {
 					wrongFiles = append(wrongFiles, wrongFile)
@@ -76,16 +71,23 @@ func (h CaminoLicenseHeader) CheckLicense(files []string) ([]WrongLicenseHeader,
 
 // To check if a file should have a custom license header or one of the default ones
 func (h CaminoLicenseHeader) checkFileLicense(f string) (bool, WrongLicenseHeader) {
-	isCustomHeader, headerName, header := h.checkCustomHeader(f)
+	absFile, fileErr := filepath.Abs(f)
+	if fileErr != nil {
+		return true, WrongLicenseHeader{f, "Couldn't get the absolute path of this file"}
+	}
+	if slices.Contains(h.Config.ExcludedFiles, absFile) {
+		return false, WrongLicenseHeader{}
+	}
+	isCustomHeader, headerName, header := h.checkCustomHeader(absFile)
 	if isCustomHeader {
-		correctLicense, reason := verifyCustomLicenseHeader(f, headerName, header)
+		correctLicense, reason := verifyCustomLicenseHeader(absFile, headerName, header)
 		if !correctLicense {
-			return true, WrongLicenseHeader{f, reason}
+			return true, WrongLicenseHeader{absFile, reason}
 		}
 	} else {
-		correctLicense, reason := h.verifyDefaultLicenseHeader(f)
+		correctLicense, reason := h.verifyDefaultLicenseHeader(absFile)
 		if !correctLicense {
-			return true, WrongLicenseHeader{f, reason}
+			return true, WrongLicenseHeader{absFile, reason}
 		}
 	}
 	return false, WrongLicenseHeader{}
@@ -94,11 +96,7 @@ func (h CaminoLicenseHeader) checkFileLicense(f string) (bool, WrongLicenseHeade
 // to check if the file is included in a custom header path
 func (h CaminoLicenseHeader) checkCustomHeader(file string) (bool, string, string) {
 	for _, customHeader := range h.Config.CustomHeaders {
-		absFile, fileErr := filepath.Abs(file)
-		if fileErr != nil {
-			absFile = file
-		}
-		if slices.Contains(customHeader.AllFiles, absFile) && !slices.Contains(customHeader.ExcludedFiles, absFile) {
+		if slices.Contains(customHeader.AllFiles, file) && !slices.Contains(customHeader.ExcludedFiles, file) {
 			return true, customHeader.Name, customHeader.Header
 		}
 	}

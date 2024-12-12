@@ -6,6 +6,7 @@ package caminolicense
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -53,9 +54,10 @@ func TestWrongDefaultLicense(t *testing.T) {
 	h := CaminoLicenseHeader{Config: headersConfig}
 	wrongFiles, err := h.CheckLicense([]string{"./test_wrong_default.go"})
 	require.ErrorIs(t, err, CheckErr)
+	currentPath, _ := filepath.Abs(".")
 	expectedWrongFiles := []WrongLicenseHeader{
 		{
-			File:   "./test_wrong_default.go",
+			File:   currentPath + "/test_wrong_default.go",
 			Reason: defaultHeaderError,
 		},
 	}
@@ -82,17 +84,28 @@ func TestWrongCustomLicense(t *testing.T) {
 	h := CaminoLicenseHeader{Config: headersConfig2}
 	wrongFiles, err := h.CheckLicense([]string{"./camino_test_wrong_custom.go", "./camino_test_exclude.go"})
 	require.ErrorIs(t, err, CheckErr)
+	currentPath, _ := filepath.Abs(".")
 	expectedWrongFiles := []WrongLicenseHeader{
 		{
-			File:   "./camino_test_wrong_custom.go",
+			File:   currentPath + "/camino_test_wrong_custom.go",
 			Reason: customHeaderError + headersConfig2.CustomHeaders[0].Name,
 		},
 		{
-			File:   "./camino_test_exclude.go",
+			File:   currentPath + "/camino_test_exclude.go",
 			Reason: defaultHeaderError,
 		},
 	}
 	require.Equal(t, expectedWrongFiles, wrongFiles)
 	require.NoError(t, os.Remove("./camino_test_wrong_custom.go"))
 	require.NoError(t, os.Remove("./camino_test_exclude.go"))
+}
+
+func TestExcludedFiles(t *testing.T) {
+	require.NoError(t, os.WriteFile("./excluded_wrong_default_1.go", []byte(fmt.Sprintf("// Copyright (C) 1000-%d, Chain4Travel AG. All rights reserved.\n// Lexclude\n\n package caminolicense", time.Now().Year())), 0o600))
+	headersConfig2, _ := config.GetHeadersConfig("../config_test.yaml")
+	h := CaminoLicenseHeader{Config: headersConfig2}
+	wrongFiles, err := h.CheckLicense([]string{"./excluded_wrong_default_1.go"})
+	require.NoError(t, err)
+	require.Empty(t, wrongFiles)
+	require.NoError(t, os.Remove("./excluded_wrong_default_1.go"))
 }

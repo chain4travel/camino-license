@@ -35,6 +35,8 @@ func TestReadConfig(t *testing.T) {
 				AllFiles:     []string{currentPath + "/camino-license/camino-license.go", currentPath + "/camino-license/camino-license_test.go"},
 			},
 		},
+		[]string{"./**/excluded_*.go"},
+		[]string(nil),
 	}
 	require.Equal(t, expectedHeadersConfig, headersConfig)
 }
